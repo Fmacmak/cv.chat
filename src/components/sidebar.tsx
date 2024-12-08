@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { Home, Upload, Search } from 'lucide-react'
+import { Home, Upload, Search, Book } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 
 export function Sidebar() {
@@ -11,13 +11,13 @@ export function Sidebar() {
         <Link href="/">
           <Button variant="ghost" className="w-full justify-start">
             <Home className="mr-2 h-4 w-4" />
-            Home
+            Home - Upload Documents
           </Button>
         </Link>
-        <Link href="/upload">
+        <Link href="/summary">
           <Button variant="ghost" className="w-full justify-start">
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Documents
+            <Book className="mr-2 h-4 w-4" />
+            Summaries
           </Button>
         </Link>
         <Link href="/query">
