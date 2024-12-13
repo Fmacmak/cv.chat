@@ -103,7 +103,7 @@ export default function Home() {
     if (!criteriaInput.trim() || !files.length) return
 
     try {
-      let analysis = await processFiles(files, criteriaInput)
+      const analysis = await processFiles(files, criteriaInput)
       setAnalysisResults(analysis[0].analysis)
       setCriteriaInput("") // Clear input after processing
     } catch (error) {
