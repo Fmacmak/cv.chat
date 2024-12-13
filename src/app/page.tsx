@@ -115,7 +115,7 @@ export default function Home() {
     if (!scoringInput.trim() || !files.length) return
 
     try {
-      let results = await processFiles(files, scoringInput, true)
+      const results = await processFiles(files, scoringInput, true)
       setScoringResults(results[0].analysis)
       setScoringInput("") // Clear input after processing
     } catch (error) {
