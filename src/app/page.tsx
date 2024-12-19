@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Upload, X } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { processFiles } from "@/app/actions/goals"
+import { processFiles, processFilesGemini } from "@/app/actions/goals"
 import { useGoals } from '@/contexts/GoalsContext'
 import { toast } from "@/hooks/use-toast"
 
@@ -22,6 +22,8 @@ export default function Home() {
   const [scoringInput, setScoringInput] = useState("")
   const [chatInput, setChatInput] = useState("")
   const [scoringResults, setScoringResults] = useState<string>("")
+
+  const [isProcessing, setIsProcessing] = useState(false);
 
 
   const { addGoal } = useGoals()
@@ -74,7 +76,7 @@ export default function Home() {
 
   const [messages, setMessages] = useState<Array<{ text: string, isUser: boolean }>>([
     {
-      text: "Hello! I'm your CV analysis assistant. How can I help you today?",
+      text: "Hello! I'm your CV analysis assistant. I can help answer questions about the analyzed CVs, their rankings, and provide insights based on the analysis results. How can I help you today?",
       isUser: false
     }
   ])
@@ -100,22 +102,30 @@ export default function Home() {
   // }
 
   const handleCriteria = async () => {
-    if (!criteriaInput.trim() || !files.length) return
+    if (!criteriaInput.trim() || !files.length) return;
 
     try {
-      const analysis = await processFiles(files, criteriaInput)
-      setAnalysisResults(analysis[0].analysis)
-      setCriteriaInput("") // Clear input after processing
+      setAnalysisResults("Processing files...");
+      const analysis = await processFilesGemini(files, criteriaInput);
+      setAnalysisResults(analysis.map(result => 
+        `File: ${result.fileName}\n${result.analysis}\n\n`
+      ).join('---\n'));
     } catch (error) {
-      console.error("Error processing criteria:", error)
+      console.error("Error processing criteria:", error);
+      setAnalysisResults("Error processing files. Please try again.");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process files",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   const handleScoring = async () => {
     if (!scoringInput.trim() || !files.length) return
 
     try {
-      const results = await processFiles(files, scoringInput, true)
+      const results = await processFilesGemini(files, scoringInput, true)
       setScoringResults(results[0].analysis)
       setScoringInput("") // Clear input after processing
     } catch (error) {
@@ -124,13 +134,62 @@ export default function Home() {
   }
 
   const handleChatMessage = async () => {
-    if (!chatInput.trim()) return
+    if (!chatInput.trim() || isProcessing) return;
 
-    setMessages(prev => [...prev, { text: chatInput, isUser: true }])
-    setChatInput("") // Clear input after sending
+    try {
+      setIsProcessing(true);
+      if (!chatInput.trim()) return;
 
-    // Add chat response logic here
-  }
+      if (!analysisResults && !scoringResults) {
+        setMessages(prev => [...prev, 
+          { text: chatInput, isUser: true },
+          { 
+            text: "Please analyze some CVs first before asking questions. I need context from the CV analysis and scoring to provide meaningful answers.", 
+            isUser: false 
+          }
+        ]);
+        setChatInput("");
+        return;
+      }
+
+      // Add user message to chat
+      setMessages(prev => [...prev, { text: chatInput, isUser: true }]);
+      setChatInput(""); // Clear input
+
+      // Create context from analysis and scoring results
+      const context = `
+Analysis Results:
+${analysisResults}
+
+Scoring Results:
+${scoringResults}
+      `;
+
+      // Process chat with context using Gemini
+      const response = await processFilesGemini(
+        files,
+        `Given this context about the CVs:
+        ${context}
+        
+        Please answer this question: ${chatInput}`,
+        false
+      );
+
+      // Add assistant response to chat
+      setMessages(prev => [...prev, {
+        text: response[0].analysis,
+        isUser: false
+      }]);
+    } catch (error) {
+      console.error("Error processing chat message:", error);
+      setMessages(prev => [...prev, {
+        text: "I apologize, but I encountered an error processing your question. Please try again.",
+        isUser: false
+      }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -360,9 +419,16 @@ export default function Home() {
             />
             <Button
               onClick={handleChatMessage}
-              disabled={!chatInput.trim()}
+              disabled={!chatInput.trim() || isProcessing}
             >
-              Send
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Send"
+              )}
             </Button>
           </div>
         </div>

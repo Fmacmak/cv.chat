@@ -2,7 +2,9 @@
 
 import fs from 'fs/promises'
 import path from 'path'
-import { customPrompt } from '@/lib/replicate'
+import { customPrompt } from '@/lib/gemini'
+// import { customPrompt } from '@/lib/gemini'
+
 
 const goalsFilePath = path.join(process.cwd(), 'data', 'goals.json')
 
@@ -77,6 +79,85 @@ export async function processFiles(files: File[], prompt: string, isScoring: boo
   }
 }
 
+export async function processFilesGemini(files: File[], prompt: string, isScoring: boolean = false) {
+  console.log(`Starting to process ${files.length} files`);
+  
+  try {
+    // Validate file sizes and types first
+    const validFiles = files.filter(file => {
+      const isValidType = ['application/pdf', 'text/plain'].includes(file.type);
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+      return isValidType && isValidSize;
+    });
+
+    if (validFiles.length === 0) {
+      throw new Error('No valid files to process. Please upload PDF or text files under 10MB.');
+    }
+
+    // Convert files to base64
+    const base64Files = await Promise.all(
+      validFiles.map(async (file) => {
+        const buffer = await file.arrayBuffer();
+        return Buffer.from(buffer).toString('base64');
+      })
+    );
+
+    // Extract text from PDFs
+    const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pdf-extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: base64Files })
+    });
+
+    if (!pdfResponse.ok) {
+      throw new Error(`PDF extraction failed: ${pdfResponse.statusText}`);
+    }
+
+    const { results } = await pdfResponse.json();
+
+    // Process with Gemini
+    const processedResults = await Promise.all(
+      results.map(async (result: any, index: number) => {
+        if (!result.success) {
+          return {
+            fileName: validFiles[index].name,
+            analysis: "Error processing this file",
+            error: true
+          };
+        }
+
+        const userPrompt = isScoring 
+          ? `Analyze and score this CV (provide a score out of 100):\n\n${result.text}\n\nScoring criteria: ${prompt}`
+          : `Analyze this CV and provide a detailed assessment:\n\n${result.text}\n\nAnalysis criteria: ${prompt}`;
+
+        try {
+          const analysis = await customPrompt(
+            userPrompt,
+            "You are an expert CV analyzer. Provide detailed, structured analysis.",
+            { temperature: 0.3 }
+          );
+
+          return {
+            fileName: validFiles[index].name,
+            analysis
+          };
+        } catch (error) {
+          console.error(`Error analyzing ${validFiles[index].name}:`, error);
+          return {
+            fileName: validFiles[index].name,
+            analysis: "Failed to analyze this CV. Please try again.",
+            error: true
+          };
+        }
+      })
+    );
+
+    return processedResults;
+  } catch (error) {
+    console.error('Error in processFilesGemini:', error);
+    throw error;
+  }
+}
 
 export async function createGoal(goal: Goal) {
   console.log('Creating new goal:', { id: goal.id, name: goal.name })

@@ -66,13 +66,27 @@ export async function customPrompt(
   config: Partial<typeof defaultConfig> = {}
 ) {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  
+  // Calculate max tokens for the content
   const maxTokens = calculateMaxTokens(prompt);
   
-  const chat = model.startChat({
-    ...defaultConfig,
-    systemInstruction: systemPrompt
-  });
+  // Combine prompts with clear separation
+  const combinedPrompt = `Instructions: ${systemPrompt}\n\nContent to analyze:\n${prompt}`;
+  
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: combinedPrompt }] }],
+      generationConfig: {
+        ...defaultConfig,
+        ...config,
+        maxOutputTokens: maxTokens,
+      },
+    });
 
-  const result = await chat.sendMessage(prompt);
-  return result.response.text();
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Gemini API error:', error);
+    throw new Error('Failed to process content with Gemini');
+  }
 }
