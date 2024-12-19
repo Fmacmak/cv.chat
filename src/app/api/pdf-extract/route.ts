@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import * as pdfjs from 'pdfjs-dist';
 
 // Initialize PDF.js worker
-const pdfjsWorker = require('pdfjs-dist/build/pdf.worker.entry');
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
+
 
 export async function POST(request: Request) {
   try {
