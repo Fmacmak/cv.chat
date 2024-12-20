@@ -14,7 +14,7 @@ type TokenType = {
   hasEOL: boolean;
 };
 
-export const readPdfFile = async ({ buffer }: any): Promise<any> => {
+const readPdfFile = async ({ buffer }: any): Promise<any> => {
   console.log('📚 Starting PDF file processing...');
   
   const readPDFPage = async (doc: any, pageNo: number) => {
