@@ -94,19 +94,25 @@ export async function processFilesGemini(files: File[], prompt: string, isScorin
       throw new Error('No valid files to process. Please upload PDF or text files under 10MB.');
     }
 
-    // Convert files to base64
-    const base64Files = await Promise.all(
+    // Convert files to base64 and prepare for pdf-grep
+    const buffers = await Promise.all(
       validFiles.map(async (file) => {
-        const buffer = await file.arrayBuffer();
-        return Buffer.from(buffer).toString('base64');
+        const arrayBuffer = await file.arrayBuffer();
+        return {
+          buffer: {
+            data: Buffer.from(arrayBuffer).toString('base64'),
+            type: file.type,
+            name: file.name
+          }
+        };
       })
     );
 
-    // Extract text from PDFs
-    const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pdf-extract`, {
+    // Extract text using pdf-grep
+    const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pdf-grep`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: base64Files })
+      body: JSON.stringify({ files: buffers })
     });
 
     if (!pdfResponse.ok) {
