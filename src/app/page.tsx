@@ -310,7 +310,6 @@ ${scoringResults}
                   value={criteriaInput}
                   onChange={(e) => {
                     setCriteriaInput(e.target.value)
-                    console.log("criteriaInput:", criteriaInput)
                     setPrompt(e.target.value)
                   }}
                   onKeyPress={(e) => e.key === 'Enter' && handleCriteria()}
