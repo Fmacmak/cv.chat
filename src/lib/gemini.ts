@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleAIFileManager, FileMetadata, FileMetadataResponse, ListFilesResponse, Content } from "@google/generative-ai/server";
 
 // Initialize the Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+const fileManager = new GoogleAIFileManager(process.env.GOOGLE_GEMINI_API_KEY!);
 
 // Default configuration for Gemini requests
 const defaultConfig = {
@@ -89,4 +91,56 @@ export async function customPrompt(
     console.error('Gemini API error:', error);
     throw new Error('Failed to process content with Gemini');
   }
+}
+
+// File Management Functions
+export async function uploadFile(filePath: string, mimeType: string, displayName?: string): Promise<FileMetadataResponse> {
+  const metadata: FileMetadata = {
+    mimeType,
+    displayName,
+  };
+  
+  const response = await fileManager.uploadFile(filePath, metadata);
+  return response.file;
+}
+
+export async function listFiles(pageSize?: number): Promise<ListFilesResponse> {
+  return fileManager.listFiles({ pageSize });
+}
+
+export async function getFile(fileId: string): Promise<FileMetadataResponse> {
+  return fileManager.getFile(fileId);
+}
+
+export async function deleteFile(fileId: string): Promise<void> {
+  return fileManager.deleteFile(fileId);
+}
+
+// Query with files
+export async function queryWithFiles(
+  prompt: string,
+  fileIds: string[],
+  model = "gemini-pro"
+): Promise<string> {
+  const genModel = genAI.getGenerativeModel({ model });
+
+  // Create a GenerateContentRequest object
+  const request = {
+    contents: [{
+      role: "user",
+      parts: [
+        { text: prompt },
+        ...fileIds.map(fileId => ({
+          fileData: {
+            fileUri: `files/${fileId}`,
+            mimeType: "application/octet-stream"
+          }
+        }))
+      ]
+    }] as Content[]
+  };
+
+  const result = await genModel.generateContent(request);
+  const response = await result.response;
+  return response.text();
 }

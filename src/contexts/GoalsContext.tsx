@@ -1,12 +1,7 @@
-import { createGoal, getGoals } from '@/app/actions/goals'
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react'
+import { Goal } from '@/types/goal'
 
-interface Goal {
-  id: string
-  name: string
-  prompt: string
-  createdAt: string
-}
+const STORAGE_KEY = 'cv_chat_goals'
 
 interface GoalsContextType {
   goals: Goal[]
@@ -21,8 +16,9 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const refreshGoals = useCallback(async () => {
     try {
-      const data = await getGoals()
-      const sortedGoals = [...data].sort((a, b) => 
+      const storedGoals = localStorage.getItem(STORAGE_KEY)
+      const parsedGoals = storedGoals ? JSON.parse(storedGoals) : []
+      const sortedGoals = [...parsedGoals].sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
       setGoals(sortedGoals)
@@ -34,15 +30,17 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const addGoal = async (goal: Goal) => {
     try {
-      await createGoal(goal)
-      await refreshGoals() // Refresh the full list instead of manual update
+      const currentGoals = localStorage.getItem(STORAGE_KEY)
+      const parsedGoals = currentGoals ? JSON.parse(currentGoals) : []
+      const updatedGoals = [...parsedGoals, goal]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedGoals))
+      await refreshGoals()
     } catch (error) {
       console.error('Error adding goal:', error)
-      throw error // Propagate error to component
+      throw error
     }
   }
 
-  // Add useEffect to load goals on mount
   useEffect(() => {
     refreshGoals()
   }, [refreshGoals])
