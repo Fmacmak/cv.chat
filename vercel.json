@@ -1,0 +1,7 @@
+{
+    "functions": {
+        "api/pdf-grep.js": {
+            "maxDuration": 45
+        }
+    }
+}
