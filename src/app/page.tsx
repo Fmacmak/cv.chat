@@ -10,6 +10,7 @@ import { processFiles, processFilesGemini } from "@/app/actions/goals"
 import { useGoals } from '@/contexts/GoalsContext'
 import { toast } from "@/hooks/use-toast"
 
+export const maxDuration = 60; // This sets the function timeout to 60 seconds
 
 export default function Home() {
   const [name, setName] = useState("")
