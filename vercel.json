@@ -1,0 +1,7 @@
+{
+    "functions": {
+        "app/api/pdf-grep/**": {
+            "maxDuration": 45
+        }
+    }
+}
