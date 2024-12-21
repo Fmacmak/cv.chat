@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
+//import pdfParse from 'pdf-parse';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -19,11 +19,11 @@ export async function PUT(req: NextRequest) {
           const buffer = Buffer.from(base64File, 'base64');
           
           // Parse PDF
-          const data = await pdfParse(buffer);
+          //const data = await pdfParse(buffer);
           
           return {
-            success: true,
-            text: data.text,
+            success: true, 
+            text: "data.text",
           };
         } catch (error) {
           console.error('Error processing PDF:', error);
