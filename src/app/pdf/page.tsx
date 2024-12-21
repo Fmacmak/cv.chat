@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import ViewerPDF from './pdf/page';
 
 type ExtractMethod = 'test' | 'pdf-extract' | 'pdf-suck' | 'pdf-grep';
 
@@ -196,9 +195,6 @@ export default function UploadPDF() {
                     </div>
                 )}
             </div>
-            {/* <Suspense fallback={<div>Loading...</div>}>
-                <ViewerPDF fileUrl={files[0]?.name} />
-            </Suspense> */}
         </div>
     );
 }
