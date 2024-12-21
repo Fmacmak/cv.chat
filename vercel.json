@@ -1,6 +1,6 @@
 {
     "functions": {
-        "api/pdf-grep.js": {
+        "app/api/pdf-grep/**": {
             "maxDuration": 45
         }
     }
